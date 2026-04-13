@@ -1,0 +1,212 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Players
+// ---------------------------------------------------------------------------
+
+model Player {
+  id          String   @id @default(cuid())
+  steamId     String   @unique @map("steam_id")
+  displayName String?  @map("display_name")
+  avatarUrl   String?  @map("avatar_url")
+  isAdmin     Boolean  @default(false) @map("is_admin")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tournamentsCreated Tournament[]          @relation("creator")
+  registrations      Registration[]
+  matchesAsA         Match[]               @relation("player_a")
+  matchesAsB         Match[]               @relation("player_b")
+  matchesWon         Match[]               @relation("winner")
+  replaysUploaded    Replay[]
+  characterStats     PlayerCharacterStat[]
+
+  @@map("players")
+}
+
+// ---------------------------------------------------------------------------
+// Tournaments
+// ---------------------------------------------------------------------------
+
+enum TournamentType {
+  SINGLE_ELIM
+  DOUBLE_ELIM
+  ROUND_ROBIN
+}
+
+enum TournamentStatus {
+  DRAFT
+  OPEN
+  CHECK_IN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Tournament {
+  id              String           @id @default(cuid())
+  title           String
+  description     String?
+  type            TournamentType
+  status          TournamentStatus @default(DRAFT)
+  startsAt        DateTime         @map("starts_at")
+  checkInOpensAt  DateTime         @map("check_in_opens_at")
+  checkInClosesAt DateTime         @map("check_in_closes_at")
+  minPlayers      Int              @map("min_players")
+  maxPlayers      Int              @map("max_players")
+  createdById     String           @map("created_by_id")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  createdBy      Player                   @relation("creator", fields: [createdById], references: [id])
+  registrations  Registration[]
+  matches        Match[]
+  characterRules TournamentCharacterRule[]
+
+  @@index([startsAt])
+  @@map("tournaments")
+}
+
+enum CharacterRuleMode {
+  WHITELIST
+  BLACKLIST
+}
+
+model TournamentCharacterRule {
+  id           String            @id @default(cuid())
+  tournamentId String            @map("tournament_id")
+  mode         CharacterRuleMode
+  characterId  String            @map("character_id")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId])
+  @@map("tournament_character_rules")
+}
+
+// ---------------------------------------------------------------------------
+// Registrations
+// ---------------------------------------------------------------------------
+
+enum RegistrationStatus {
+  REGISTERED
+  CHECKED_IN
+  WITHDRAWN
+}
+
+model Registration {
+  id           String             @id @default(cuid())
+  tournamentId String             @map("tournament_id")
+  playerId     String             @map("player_id")
+  status       RegistrationStatus @default(REGISTERED)
+  seed         Int?
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  player     Player     @relation(fields: [playerId], references: [id])
+
+  @@unique([tournamentId, playerId])
+  @@index([tournamentId])
+  @@map("registrations")
+}
+
+// ---------------------------------------------------------------------------
+// Matches
+// ---------------------------------------------------------------------------
+
+enum BracketSide {
+  WINNERS
+  LOSERS
+}
+
+enum MatchStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  BYE
+}
+
+model Match {
+  id           String      @id @default(cuid())
+  tournamentId String      @map("tournament_id")
+  round        Int
+  position     Int
+  bracketSide  BracketSide? @map("bracket_side")
+  playerAId    String?     @map("player_a_id")
+  playerBId    String?     @map("player_b_id")
+  winnerId     String?     @map("winner_id")
+  status       MatchStatus @default(PENDING)
+  scheduledAt  DateTime?   @map("scheduled_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  playerA    Player?    @relation("player_a", fields: [playerAId], references: [id])
+  playerB    Player?    @relation("player_b", fields: [playerBId], references: [id])
+  winner     Player?    @relation("winner", fields: [winnerId], references: [id])
+  replays    Replay[]
+
+  @@index([tournamentId])
+  @@map("matches")
+}
+
+// ---------------------------------------------------------------------------
+// Replays
+// ---------------------------------------------------------------------------
+
+enum ProcessingStatus {
+  QUEUED
+  PROCESSING
+  COMPLETE
+  FAILED
+}
+
+model Replay {
+  id               String           @id @default(cuid())
+  matchId          String           @map("match_id")
+  uploadedById     String           @map("uploaded_by_id")
+  storageKey       String           @unique @map("storage_key")
+  sha256           String           @unique
+  fileSizeBytes    Int              @map("file_size_bytes")
+  gameVersion      String?          @map("game_version")
+  characterIds     String[]         @map("character_ids")
+  embeddedSteamIds String[]         @map("embedded_steam_ids")
+  processingStatus ProcessingStatus @default(QUEUED) @map("processing_status")
+  derivedWinnerId  String?          @map("derived_winner_id")
+  parserWarnings   String[]         @map("parser_warnings")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  match      Match  @relation(fields: [matchId], references: [id])
+  uploadedBy Player @relation(fields: [uploadedById], references: [id])
+
+  @@index([matchId])
+  @@index([processingStatus])
+  @@map("replays")
+}
+
+// ---------------------------------------------------------------------------
+// Player character stats
+// ---------------------------------------------------------------------------
+
+model PlayerCharacterStat {
+  id          String @id @default(cuid())
+  playerId    String @map("player_id")
+  characterId String @map("character_id")
+  wins        Int    @default(0)
+  losses      Int    @default(0)
+
+  player Player @relation(fields: [playerId], references: [id])
+
+  @@unique([playerId, characterId])
+  @@index([playerId])
+  @@map("player_character_stats")
+}

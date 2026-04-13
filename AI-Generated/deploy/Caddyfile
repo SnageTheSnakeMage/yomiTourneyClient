@@ -1,0 +1,33 @@
+# -----------------------------------------------------------------------
+# Caddyfile — TLS termination for the YOMIH tournament API
+#
+# Replace tourney.example.com with your real domain.
+# Caddy obtains a Let's Encrypt cert automatically on first request.
+# The YOMIH GDScript mod trusts standard public CA certs (Godot 3.5
+# bundles the Mozilla CA store), so no cert pinning is required.
+# -----------------------------------------------------------------------
+
+tourney.example.com {
+    # Reverse-proxy all traffic to the API container
+    reverse_proxy api:3000 {
+        # Pass real IP so the API can log it if desired
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        -Server
+    }
+
+    # Access log — rotate externally or use a log rotation sidecar
+    log {
+        output file /data/caddy/access.log {
+            roll_size 10mb
+            roll_keep 7
+        }
+    }
+}

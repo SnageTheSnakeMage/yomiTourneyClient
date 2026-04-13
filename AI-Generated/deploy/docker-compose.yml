@@ -1,0 +1,82 @@
+version: "3.9"
+
+services:
+  # -----------------------------------------------------------------------
+  # Postgres — persistent volume so data survives container restarts
+  # -----------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -----------------------------------------------------------------------
+  # API — stateless; scales to multiple replicas when needed (add Redis
+  #       env vars for rate limiting at that point)
+  # -----------------------------------------------------------------------
+  api:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      STEAM_PUBLISHER_KEY: ${STEAM_PUBLISHER_KEY}
+      STEAM_APP_ID: "2212330"
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}            # "local" | "s3"
+      LOCAL_STORAGE_PATH: /app/replays
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      SUPPORTED_GAME_VERSIONS: ${SUPPORTED_GAME_VERSIONS:-1.9.20-steam}
+      REPLAY_MAX_SIZE_MB: ${REPLAY_MAX_SIZE_MB:-50}
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - replay_storage:/app/replays
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    # Internal only — Caddy terminates TLS externally
+    expose:
+      - "3000"
+
+  # -----------------------------------------------------------------------
+  # Caddy — TLS termination via Let's Encrypt
+  # The mod connects to https://<DOMAIN>; Caddy forwards to api:3000
+  # -----------------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  replay_storage:
+  caddy_data:
+  caddy_config:

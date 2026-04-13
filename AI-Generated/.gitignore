@@ -1,0 +1,18 @@
+# Dependencies
+server/node_modules/
+server/dist/
+
+# Environment / secrets — NEVER commit
+deploy/.env
+server/.env
+*.env.local
+
+# Build
+server/dist/
+
+# Logs
+*.log
+
+# Editor
+.vscode/
+*.swp

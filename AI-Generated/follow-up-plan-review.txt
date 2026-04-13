@@ -1,0 +1,43 @@
+Follow-up on the YOMIH tournament mod plan — please fold this feedback into the doc (or your next revision) so nothing important gets lost.
+
+---
+
+The plan is strong on Godot 3.5 vs 4, replay-as-Variant, the long pole of simulation, TO override, and not trusting replay-only Steam IDs. The vertical slices and risk register are helpful.
+
+Here’s what I’d tighten or fix:
+
+**Phase 0 vs SPEC** — You call Phase 0 “blocking ambiguity” but SPEC.md “optional.” Pick one: either the spec is required before backend work, or it isn’t. If we skip a full SPEC, at least list the non‑negotiables (Steam auth approach, guest policy, replay trust rules) as a short checklist.
+
+**Steam auth** — `POST /v1/auth/steam` mentions “Web API token flow or OpenID.” For a game mod we almost certainly want Steamworks **session ticket** validation (`AuthenticateUserTicket`), not website OpenID. Please spell out the intended flow so nobody implements the wrong thing.
+
+**Lua / networking gate** — The mod assumes HTTPS, JWT storage, file pickers, maybe `OS.shell_open`. That could be blocked by the engine. Add an **early spike** (Phase 0 or start of Phase 1): confirm what HTTP/TLS and secret storage the mod actually allows before we commit to “all in-game.” Move the companion-app fallback from a footnote to a real go/no-go if the spike fails.
+
+**Diagram vs API** — The architecture shows WebSocket to the API but Phase 3 is REST-only. Either add WebSockets to scope with a reason (e.g. live brackets) or drop WebSockets from the diagram.
+
+**Production / TLS** — Docker Compose covers DB and API but not TLS termination (Caddy/nginx/Let’s Encrypt). Without that, HTTPS from the client is painful (self-signed, pinning, etc.). Say where TLS terminates and how the mod trusts the server.
+
+**Rate limiting** — In-memory rate limits don’t work across multiple API replicas. Note: single instance first, or Redis (or similar) when we scale out.
+
+**Upload path** — Presigned S3 uploads drag in CORS, MinIO policies, and client complexity. For MVP, consider multipart **POST to the API** and let the API write to storage unless we have a strong reason for presigned.
+
+**Virus scanning** — Mentioning virus scan in the worker implies ClamAV/extra infra or a paid API. Either mark it “post-MVP / optional” or add it to the deploy story explicitly.
+
+**Privacy** — One line on retention/deletion for Steam IDs, IPs, replay blobs (even “MVP: informal; formalize before wide launch”) so GDPR-style surprises don’t blindside us later.
+
+**Replay uploads** — Call out idempotency (same hash), max size, per-user quotas—not only generic rate limits.
+
+**Check-in windows** — Expose authoritative server time (dedicated endpoint or documented `Date` header policy) so client clock skew doesn’t break check-in.
+
+**Double elim** — “Grand finals reset” as a flag is fine, but **which** ruleset (reset vs not, etc.) should be named and frozen in the bracket spec so we don’t rework later.
+
+**Custom graph** — “Validate DAG” isn’t enough; we need criteria that match tournaments (e.g. single winner sink, valid match nodes, no stranded players).
+
+**Testing** — Unit tests for brackets are good; add a note on **contract tests** (e.g. OpenAPI) and a **smoke E2E** (Compose up, one happy path) so we don’t get green units and broken integration.
+
+**Todos vs vertical slices** — The todo list is phase-linear; the execution order prioritizes **vertical slices**. Align todos with slices so an LLM doesn’t follow todos literally and ship backend features late while delaying user-visible value.
+
+**Steam caching** — Document API key storage, rotation, and behavior when Steam is down (cached data, stale OK, etc.).
+
+---
+
+**Summary:** Nail down **Steam ticket auth**, add an **early modding-capabilities gate**, align **diagram ↔ API**, and make **MVP deploy** (TLS, upload path, optional virus scan) explicit so the next pass doesn’t encode the wrong assumptions.
