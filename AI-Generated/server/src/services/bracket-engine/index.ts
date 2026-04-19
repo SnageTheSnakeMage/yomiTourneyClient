@@ -1,4 +1,4 @@
-export { generateSingleElim } from "./single-elim.js";
+export { generateSingleElim, advanceSlot } from "./single-elim.js";
 export { generateDoubleElim, DE_RULESET } from "./double-elim.js";
 export { generateRoundRobin } from "./round-robin.js";
 
