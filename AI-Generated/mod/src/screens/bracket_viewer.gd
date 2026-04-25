@@ -20,7 +20,7 @@ func load_bracket(tournament_id: String) -> void:
 
 
 func _on_api_response(endpoint: String, status_code: int, body) -> void:
-	if not endpoint.contains(_tournament_id + "/bracket"):
+	if not (_tournament_id + "/bracket") in endpoint:
 		return
 	if status_code != 200:
 		_status.text = body.get("error", "Failed to load bracket.")

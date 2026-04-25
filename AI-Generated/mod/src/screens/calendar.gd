@@ -37,7 +37,7 @@ func _load_month() -> void:
 
 
 func _on_api_response(endpoint: String, status_code: int, body) -> void:
-	if not endpoint.contains("/tournaments"):
+	if not "/tournaments" in endpoint:
 		return
 	if status_code != 200:
 		_status_label.text = "Failed to load calendar."
