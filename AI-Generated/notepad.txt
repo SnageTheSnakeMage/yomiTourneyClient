@@ -1,0 +1,26 @@
+Suggested next steps (in a sensible order)
+Treat the AI-generated code as a spec, not production
+Walk critical paths (auth, bracket progression, replay upload + override, admin) and confirm behavior matches AUTH_AND_POLICY.md and your own tournament rules.
+
+Run a minimal vertical slice locally
+Postgres + migrations + dev server; hit /healthz, /v1/time, /v1/tournaments, then POST /v1/auth/steam with a real ticket once you have a Steam Web API publisher key and the correct app id (the doc pins 2212330 — confirm that matches the Steam build you target).
+
+Lock the mod ↔ API contract
+Compare each mod screen’s calls to the Fastify route schemas / OpenAPI. Mismatched field names, missing PATCH, or multipart replay upload details are the usual integration bugs.
+
+Validate the mod in the actual game build
+Confirm HTTPRequest works in the exported mod context, confirm the main menu node path in mod_main.gd, and exercise Steam ticket retrieval via whatever GodotSteam API you use (the spike is http_spike.gd; login flow should mirror AUTH_AND_POLICY.md).
+
+Replay pipeline as a focused milestone
+Use real .replay files, SUPPORTED_GAME_VERSIONS, worker behavior, and TO override (matches routes) so “replay as source of truth” matches how you want disputes handled.
+
+Testing and CI
+You already have Vitest (bracket unit tests, partial smoke E2E that skips without DATABASE_URL). Next step is widening E2E to registration → bracket generation → match report, and running tests in CI with a Postgres service.
+
+Ops and secrets
+docker-compose, Caddy hostname, JWT_SECRET, DB URL, Steam key, log rotation — enough for a small private deploy before you worry about scale (the code already notes Redis-backed rate limits for multi-replica later).
+
+Community / distribution
+CONTRIBUTING with exact setup (game version, mod install path, env vars), issue templates, and any Workshop or publisher constraints for YOMIH mods — separate from code but important if others will run or extend this.
+
+If you tell me your immediate goal (e.g. “first online test tournament” vs. “ship a Workshop mod”), the order above can be tightened to a shorter checklist for that goal. I am in Ask mode, so I cannot run the stack or change files here; if you want that done in-repo, switch to Agent mode
