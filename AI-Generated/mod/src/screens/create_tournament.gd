@@ -105,7 +105,7 @@ func _on_submit() -> void:
 		return
 
 	var types_map := ["SINGLE_ELIM", "DOUBLE_ELIM", "ROUND_ROBIN"]
-	var type_str  := types_map[_type_option.selected]
+	var type_str  : String = types_map[_type_option.selected]
 
 	# Build character rules from selected list items
 	var char_rules := []
