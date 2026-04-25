@@ -1,0 +1,53 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://mods/yomih_tourney/src/screens/create_tournament.gd" type="Script" id=1]
+
+[node name="CreateTournamentScreen" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource( 1 )
+
+[node name="Form" type="VBoxContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="TitleEdit" type="LineEdit" parent="Form"]
+placeholder_text = "Tournament title"
+
+[node name="DescEdit" type="TextEdit" parent="Form"]
+rect_min_size = Vector2( 0, 80 )
+placeholder_text = "Description (optional)"
+
+[node name="TypeOption" type="OptionButton" parent="Form"]
+
+[node name="StartsEdit" type="LineEdit" parent="Form"]
+placeholder_text = "Start time (e.g. 2026-06-01T18:00:00Z)"
+
+[node name="CheckInOpenEdit" type="LineEdit" parent="Form"]
+placeholder_text = "Check-in opens (ISO 8601)"
+
+[node name="CheckInCloseEdit" type="LineEdit" parent="Form"]
+placeholder_text = "Check-in closes (ISO 8601)"
+
+[node name="MinPlayers" type="SpinBox" parent="Form"]
+min_value = 2.0
+max_value = 256.0
+value = 4.0
+
+[node name="MaxPlayers" type="SpinBox" parent="Form"]
+min_value = 2.0
+max_value = 256.0
+value = 16.0
+
+[node name="CharacterList" type="ItemList" parent="Form"]
+rect_min_size = Vector2( 0, 150 )
+select_mode = 1
+
+[node name="WhitelistToggle" type="CheckButton" parent="Form"]
+text = "Enable character whitelist"
+
+[node name="SubmitButton" type="Button" parent="Form"]
+text = "Create Tournament"
+
+[node name="StatusLabel" type="Label" parent="Form"]
+text = ""

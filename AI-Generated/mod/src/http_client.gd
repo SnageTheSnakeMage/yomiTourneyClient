@@ -9,10 +9,14 @@ signal api_response(endpoint, status_code, body)
 var _queue := []
 var _busy  := false
 
-onready var _http := $HTTPRequest
+# Created programmatically because this script is loaded as a plain-script autoload
+# (no .tscn), so there is no scene tree to read $HTTPRequest from.
+var _http : HTTPRequest
 
 
 func _ready() -> void:
+	_http = HTTPRequest.new()
+	add_child(_http)
 	_http.connect("request_completed", self, "_on_request_completed")
 
 
