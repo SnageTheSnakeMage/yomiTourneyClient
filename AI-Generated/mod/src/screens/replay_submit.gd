@@ -68,8 +68,8 @@ func _on_upload() -> void:
 
 	var file_info : Dictionary = _replay_files[idx[0]]
 	var file := File.new()
-	if file.open(file_info["path"], File.READ) != OK:
-		_status.text = "Could not read file: " + file_info["name"]
+	if file.open(file_info["path"] as String, File.READ) != OK:
+		_status.text = "Could not read file: " + file_info["name"] as String
 		return
 
 	var bytes : PoolByteArray = file.get_buffer(file.get_len())
@@ -82,9 +82,9 @@ func _on_upload() -> void:
 	# build the multipart body with the Content-Type boundary.
 	var boundary := "----YomiTourneyBoundary"
 	var crlf     := "\r\n"
-	var header   := (
+	var header : String = (
 		"--" + boundary + crlf +
-		"Content-Disposition: form-data; name=\"file\"; filename=\"" + file_info["name"] + "\"" + crlf +
+		"Content-Disposition: form-data; name=\"file\"; filename=\"" + file_info["name"] as String + "\"" + crlf +
 		"Content-Type: application/octet-stream" + crlf + crlf
 	)
 	var footer   := crlf + "--" + boundary + "--" + crlf
