@@ -45,10 +45,10 @@ func _on_api_response(endpoint: String, status_code: int, body) -> void:
 		opponent.get("displayName", opponent.get("steamId", "Unknown"))
 	)
 	var tournament_title : String = match_data.get("tournament", {}).get("title", "?")
-	var round            : int    = match_data.get("round", 0)
+	var tournament_round : int    = match_data.get("round", 0)
 
 	_info_label.text = (
-		"Tournament: %s\nRound: %d\nOpponent: %s" % [tournament_title, round, opp_name]
+		"Tournament: %s\nRound: %d\nOpponent: %s" % [tournament_title, tournament_round, opp_name]
 	)
 	_status_label.text = ""
 	_steam_btn.visible  = _steam_profile_url != ""
